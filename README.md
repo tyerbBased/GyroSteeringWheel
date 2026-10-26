@@ -11,6 +11,8 @@ axis.
 
 No root required. No Arduino. No drivers.
 
+The app speaks **English and Ukrainian** (switchable in the app).
+
 ## Features
 
 - **100 packets/s** UDP streaming — low latency, smooth in-game response
@@ -53,7 +55,7 @@ cd receiver
 ./run_receiver.sh
 ```
 
-or directly: `python3 -u steering_receiver_linux.py`
+or directly: `python3 -u steering_receiver_linux.py` (needs `pip install python-uinput`)
 
 Find your PC IP address: `ip a` (e.g. `192.168.0.104`).
 
@@ -62,7 +64,7 @@ Find your PC IP address: `ip a` (e.g. `192.168.0.104`).
 Grab the APK from [`releases/`](releases/) (or build it yourself, see below),
 install it, make sure the phone is on the same Wi-Fi network as the PC, then:
 
-1. Enter the PC IP and port `8888`
+1. Enter the PC IP and port `47777`
 2. Press **START** — wait for the green `● 100 pkt/s — PC OK` indicator
 3. Hold the phone like a wheel, screen facing you, and press **CALIBRATE**
    while the wheel is straight
@@ -78,11 +80,12 @@ install it, make sure the phone is on the same Wi-Fi network as the PC, then:
 | Smoothing | Exponential smoothing 0–95% (default 40%) |
 | Invert | On by default: clockwise turn = positive axis value |
 | Screen orientation | Fixed landscape / fixed portrait / follow system setting |
+| Language | English / Українська |
 | Keep screen on | Prevents the screen from sleeping while streaming |
 
 All settings are saved automatically.
 
-## Protocol (UDP, port 8888)
+## Protocol (UDP, port 47777)
 
 The phone sends a packet every 10 ms:
 
@@ -101,27 +104,32 @@ smoothly returns the wheel to center.
 ```bash
 cd receiver
 ./run_receiver.sh &
-python3 test_sender.py 127.0.0.1 8888
+python3 test_sender.py 127.0.0.1 47777
 ```
 
 Verify the axis with `jstest /dev/input/js0` or `evtest`.
 
 ## Building the APK from source
 
-Requires JDK 17 and the Android SDK (platform 34, build-tools 34.0.0):
+The repo ships the exact toolchain setup used by the author (JDK 17 +
+Android SDK platform 34 + Gradle 8.7). One command downloads everything
+(~500 MB, no root):
 
 ```bash
-cd android-app
-echo "sdk.dir=/path/to/android-sdk" > local.properties
-gradle assembleDebug
+tools/build_apk.sh
 ```
 
-Output: `app/build/outputs/apk/debug/app-debug.apk`
+(first run installs the toolchain automatically, or run `tools/setup_toolchain.sh` alone)
+
+Output: `android-app/app/build/outputs/apk/debug/app-debug.apk`
+
+Prefer your own setup? Open `android-app/` in Android Studio and build there
+— the project has no external dependencies.
 
 ## Troubleshooting
 
 - **App shows "PC silent"** — check the IP, make sure both devices are on the
-  same network. If a firewall is running: `sudo ufw allow 8888/udp`.
+  same network. If a firewall is running: `sudo ufw allow 47777/udp`.
 - **PermissionError on /dev/uinput** — add a udev rule:
 
   ```
@@ -143,6 +151,15 @@ Output: `app/build/outputs/apk/debug/app-debug.apk`
 - On-screen buttons (the protocol already reserves a `B,<mask>` field)
 - Force-feedback-style resistance (haptics on turn)
 - Windows receiver
+
+## Repository layout
+
+```
+receiver/          Linux receiver + UDP test sender (Python, uinput)
+android-app/       Android app sources (Gradle, no external dependencies)
+tools/             build_apk.sh + setup_toolchain.sh — one-command build toolchain
+releases/          prebuilt APK of the latest release
+```
 
 ## License
 

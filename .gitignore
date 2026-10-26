@@ -8,10 +8,10 @@ app/build/
 captures/
 *.iml
 
-# Machine-specific SDK path (set your own: sdk.dir=/path/to/android-sdk)
+# Machine-specific SDK path (created by tools/setup_toolchain.sh)
 local.properties
 
-# Build outputs (published APKs live in releases/)
+# Build outputs (published APK lives in releases/)
 *.apk
 !releases/*.apk
 
@@ -19,5 +19,12 @@ local.properties
 __pycache__/
 *.pyc
 
-# Local toolchain (JDK/Android SDK — never commit)
-tools/
+# Toolchain downloads (the setup/build scripts ARE committed, downloads are not)
+tools/*
+!tools/setup_toolchain.sh
+!tools/build_apk.sh
+
+# Editor swap files
+*.kate-swp
+*.swp
+*~

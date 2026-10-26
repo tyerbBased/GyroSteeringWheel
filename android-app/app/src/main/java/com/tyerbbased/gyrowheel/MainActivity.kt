@@ -42,7 +42,7 @@ import kotlin.math.sign
 class MainActivity : Activity(), SensorEventListener {
 
     private var targetIp = "192.168.0.104"
-    private var port = 8888
+    private var port = 47777
     private var maxAngle = 90f
     private var deadzoneDeg = 2f
     private var smoothingPct = 40
@@ -50,6 +50,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var axisIndex = 0
     private var orientIndex = 0
     private var vibStrength = 60
+    private var lang = "en"
     private var keepScreenOn = true
 
     private lateinit var sensorManager: SensorManager
@@ -97,6 +98,7 @@ class MainActivity : Activity(), SensorEventListener {
     private lateinit var vibSeek: SeekBar
     private lateinit var axisGroup: RadioGroup
     private lateinit var orientGroup: RadioGroup
+    private lateinit var langGroup: RadioGroup
     private lateinit var invertCheck: CheckBox
     private lateinit var screenCheck: CheckBox
 
@@ -104,6 +106,7 @@ class MainActivity : Activity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         loadPrefs()
+        Lang.current = lang
         applyOrientation()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -123,6 +126,8 @@ class MainActivity : Activity(), SensorEventListener {
         handler.postDelayed(uiTick, 250)
     }
 
+    private fun t(en: String, uk: String): String = Lang.s(en, uk)
+
     private fun buildUi() {
         val scroll = ScrollView(this)
         val root = LinearLayout(this).apply {
@@ -141,7 +146,7 @@ class MainActivity : Activity(), SensorEventListener {
             gravity = Gravity.CENTER
         })
 
-        statusText = label("STOPPED", 18f, true, Color.GRAY).apply { gravity = Gravity.CENTER }
+        statusText = label(t("STOPPED", "ЗУПИНЕНО"), 18f, true, Color.GRAY).apply { gravity = Gravity.CENTER }
         root.addView(statusText)
 
         angleText = label("0°", 40f, true, 0xFFFFF176.toInt()).apply { gravity = Gravity.CENTER }
@@ -152,7 +157,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
         root.addView(bar, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(20)))
 
-        valueText = label("steer = 0   (right = +)", 13f).apply { gravity = Gravity.CENTER }
+        valueText = label("${t("steer", "кермо")} = 0   (${t("right = +", "праворуч = +")})", 13f).apply { gravity = Gravity.CENTER }
         root.addView(valueText)
 
         rateText = label("", 14f, true, Color.GRAY).apply { gravity = Gravity.CENTER }
@@ -160,12 +165,12 @@ class MainActivity : Activity(), SensorEventListener {
 
         val rowIp = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         ipEdit = EditText(this).apply {
-            hint = "PC IP (напр. 192.168.0.104)"
+            hint = t("PC IP (e.g. 192.168.0.104)", "IP ПК (напр. 192.168.0.104)")
             setText(targetIp)
             inputType = android.text.InputType.TYPE_CLASS_PHONE
         }
         portEdit = EditText(this).apply {
-            hint = "Port"; setText(port.toString())
+            hint = t("Port", "Порт"); setText(port.toString())
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
         }
         rowIp.addView(ipEdit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 3f))
@@ -173,22 +178,25 @@ class MainActivity : Activity(), SensorEventListener {
         root.addView(rowIp)
 
         val rowBtn = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        startBtn = Button(this).apply { text = "START"; isAllCaps = false }
-        calibBtn = Button(this).apply { text = "CALIBRATE (hold wheel centered)"; isAllCaps = false }
+        startBtn = Button(this).apply { text = t("START", "СТАРТ"); isAllCaps = false }
+        calibBtn = Button(this).apply {
+            text = t("CALIBRATE (hold wheel centered)", "КАЛІБРУВАТИ (тримайте кермо рівно)")
+            isAllCaps = false
+        }
         rowBtn.addView(startBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         rowBtn.addView(calibBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f))
         root.addView(rowBtn)
 
-        root.addView(label("Steering axis (how you hold the phone):", 14f, true))
+        root.addView(label(t("Steering axis (how you hold the phone):", "Вісь керма (як ви тримаєте телефон):"), 14f, true))
         axisGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
         val axes = arrayOf(
-            "Z — screen faces you (hold like a wheel)",
-            "X — long edge horizontal",
-            "Y — short edge vertical",
+            t("Z — screen faces you (hold like a wheel)", "Z — екран до себе (тримайте як кермо)"),
+            t("X — long edge horizontal", "X — довга грань горизонтально"),
+            t("Y — short edge vertical", "Y — коротка грань вертикально"),
         )
-        axes.forEachIndexed { i, t ->
+        axes.forEachIndexed { i, txt ->
             axisGroup.addView(RadioButton(this).apply {
-                text = t; id = 100 + i; isChecked = (i == axisIndex); textSize = 13f
+                text = txt; id = 100 + i; isChecked = (i == axisIndex); textSize = 13f
             })
         }
         axisGroup.setOnCheckedChangeListener { _, _ ->
@@ -198,16 +206,16 @@ class MainActivity : Activity(), SensorEventListener {
         }
         root.addView(axisGroup)
 
-        root.addView(label("Screen orientation:", 14f, true))
+        root.addView(label(t("Screen orientation:", "Орієнтація екрана:"), 14f, true))
         orientGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
         val orients = arrayOf(
-            "Landscape — fixed, never flips (upside-down safe)",
-            "Portrait — fixed",
-            "Follow system rotation setting",
+            t("Landscape — fixed, never flips (upside-down safe)", "Альбомна — фіксована, без перевертань"),
+            t("Portrait — fixed", "Портретна — фіксована"),
+            t("Follow system rotation setting", "Як у системі (автоповорот)"),
         )
-        orients.forEachIndexed { i, t ->
+        orients.forEachIndexed { i, txt ->
             orientGroup.addView(RadioButton(this).apply {
-                text = t; id = 200 + i; isChecked = (i == orientIndex); textSize = 13f
+                text = txt; id = 200 + i; isChecked = (i == orientIndex); textSize = 13f
             })
         }
         orientGroup.setOnCheckedChangeListener { _, _ ->
@@ -217,70 +225,91 @@ class MainActivity : Activity(), SensorEventListener {
         }
         root.addView(orientGroup)
 
+        root.addView(label("Language / Мова:", 14f, true))
+        langGroup = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
+        val langs = arrayOf("English", "Українська")
+        langs.forEachIndexed { i, txt ->
+            langGroup.addView(RadioButton(this).apply {
+                text = txt; id = 300 + i; isChecked = ((if (i == 1) "uk" else "en") == lang); textSize = 13f
+            })
+        }
+        langGroup.setOnCheckedChangeListener { _, _ ->
+            val newLang = if (langGroup.checkedRadioButtonId == 301) "uk" else "en"
+            if (newLang != lang) {
+                lang = newLang
+                Lang.current = lang
+                savePrefs()
+                recreate()
+            }
+        }
+        root.addView(langGroup)
+
         val rowChk = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         invertCheck = CheckBox(this).apply {
-            text = "Invert"; isChecked = invert; textSize = 13f
+            text = t("Invert", "Інвертувати"); isChecked = invert; textSize = 13f
             setOnCheckedChangeListener { _, c -> invert = c; savePrefs() }
         }
         screenCheck = CheckBox(this).apply {
-            text = "Keep screen on"; isChecked = keepScreenOn; textSize = 13f
+            text = t("Keep screen on", "Не вимикати екран"); isChecked = keepScreenOn; textSize = 13f
             setOnCheckedChangeListener { _, c -> keepScreenOn = c; applyKeepScreenOn(); savePrefs() }
         }
         rowChk.addView(invertCheck, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         rowChk.addView(screenCheck, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         root.addView(rowChk)
 
-        maxAngleLabel = label("Full lock at: ${maxAngle.roundToInt()}°", 14f, true)
+        maxAngleLabel = label("${t("Full lock at:", "Повний виворт на:")} ${maxAngle.roundToInt()}°", 14f, true)
         root.addView(maxAngleLabel)
         maxAngleSeek = SeekBar(this).apply { max = 198; progress = ((maxAngle - 30) / 15f).roundToInt() }
         maxAngleSeek.setOnSeekBarChangeListener(simpleSeek {
             maxAngle = 30 + it * 15f
-            maxAngleLabel.text = "Full lock at: ${maxAngle.roundToInt()}°"
+            maxAngleLabel.text = "${t("Full lock at:", "Повний виворт на:")} ${maxAngle.roundToInt()}°"
             savePrefs()
         })
         root.addView(maxAngleSeek)
 
-        deadzoneLabel = label("Deadzone: ${deadzoneDeg.roundToInt()}°", 14f, true)
+        deadzoneLabel = label("${t("Deadzone:", "Мертва зона:")} ${deadzoneDeg.roundToInt()}°", 14f, true)
         root.addView(deadzoneLabel)
         deadzoneSeek = SeekBar(this).apply { max = 10; progress = deadzoneDeg.roundToInt() }
         deadzoneSeek.setOnSeekBarChangeListener(simpleSeek {
             deadzoneDeg = it.toFloat()
-            deadzoneLabel.text = "Deadzone: ${it}°"
+            deadzoneLabel.text = "${t("Deadzone:", "Мертва зона:")} ${it}°"
             savePrefs()
         })
         root.addView(deadzoneSeek)
 
-        smoothingLabel = label("Smoothing: $smoothingPct%", 14f, true)
+        smoothingLabel = label("${t("Smoothing:", "Згладжування:")} $smoothingPct%", 14f, true)
         root.addView(smoothingLabel)
         smoothingSeek = SeekBar(this).apply { max = 95; progress = smoothingPct }
         smoothingSeek.setOnSeekBarChangeListener(simpleSeek {
             smoothingPct = it
-            smoothingLabel.text = "Smoothing: $it%"
+            smoothingLabel.text = "${t("Smoothing:", "Згладжування:")} $it%"
             savePrefs()
         })
         root.addView(smoothingSeek)
 
-        vibLabel = label("Vibration beyond full lock: $vibStrength%", 14f, true)
+        vibLabel = label("${t("Vibration beyond full lock:", "Вібрація за межею виворту:")} $vibStrength%", 14f, true)
         root.addView(vibLabel)
         vibSeek = SeekBar(this).apply { max = 100; progress = vibStrength }
         vibSeek.setOnSeekBarChangeListener(simpleSeek {
             vibStrength = it
-            vibLabel.text = "Vibration beyond full lock: $it%"
+            vibLabel.text = "${t("Vibration beyond full lock:", "Вібрація за межею виворту:")} $it%"
             if (vibrating) stopVibration()
             savePrefs()
         })
         root.addView(vibSeek)
 
         root.addView(label(
-            "ПК: запустіть steering_receiver_linux.py (порт $port).\n" +
-            "Тримайте телефон як кермо, екраном до себе. CALIBRATE = нуль.",
+            t(
+                "PC: run receiver/steering_receiver_linux.py (port $port).\nHold the phone like a wheel, screen facing you. CALIBRATE = zero.",
+                "ПК: запустіть receiver/steering_receiver_linux.py (порт $port).\nТримайте телефон як кермо, екраном до себе. КАЛІБРУВАТИ = нуль."
+            ),
             12f, color = Color.GRAY
         ))
 
         startBtn.setOnClickListener { if (running) stopStreaming() else startStreaming() }
         calibBtn.setOnClickListener {
             reCalibrate()
-            Toast.makeText(this, "Calibrated at current pose", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, t("Calibrated at current pose", "Відкалібровано поточне положення"), Toast.LENGTH_SHORT).show()
         }
 
         setContentView(scroll)
@@ -352,22 +381,24 @@ class MainActivity : Activity(), SensorEventListener {
     private fun startStreaming() {
         if (running) return
         val ip = ipEdit.text.toString().trim()
-        val p = portEdit.text.toString().toIntOrNull() ?: 8888
+        val p = portEdit.text.toString().toIntOrNull() ?: 47777
         if (ip.isEmpty()) {
-            rateText.text = "Введіть IP комп'ютера!"; rateText.setTextColor(Color.RED)
+            rateText.text = t("Enter PC IP address!", "Введіть IP комп'ютера!")
+            rateText.setTextColor(Color.RED)
             return
         }
         targetIp = ip; port = p; savePrefs()
 
         if (rotationSensor == null) {
-            rateText.text = "Немає сенсора обертання!"; rateText.setTextColor(Color.RED)
+            rateText.text = t("No rotation sensor on this device", "На пристрої немає сенсора обертання")
+            rateText.setTextColor(Color.RED)
             return
         }
 
         netError = null
         lastAck = 0
         packetsSent = 0; lastPackets = 0; lastRateTime = System.currentTimeMillis()
-        qCal = null; smoothNorm = 0f
+        reCalibrate()
 
         acquireWifiLock()
         sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_FASTEST)
@@ -376,8 +407,8 @@ class MainActivity : Activity(), SensorEventListener {
         sendThread = Thread { senderLoop(ip, p) }.apply { name = "steer-send"; start() }
         ackThread = Thread { ackLoop() }.apply { name = "steer-ack"; start() }
 
-        startBtn.text = "STOP"
-        statusText.text = "STREAMING → $ip:$p"
+        startBtn.text = t("STOP", "СТОП")
+        statusText.text = "${t("STREAMING", "ПОТУК")} → $ip:$p"
         statusText.setTextColor(Color.parseColor("#66BB6A"))
     }
 
@@ -389,8 +420,8 @@ class MainActivity : Activity(), SensorEventListener {
         releaseWifiLock()
         stopVibration()
         steerOut = 0; twistDeg = 0f
-        startBtn.text = "START"
-        statusText.text = "STOPPED"
+        startBtn.text = t("START", "СТАРТ")
+        statusText.text = t("STOPPED", "ЗУПИНЕНО")
         statusText.setTextColor(Color.GRAY)
         rateText.text = ""
     }
@@ -406,20 +437,20 @@ class MainActivity : Activity(), SensorEventListener {
             }
             angleText.text = "${twistDeg.roundToInt()}°"
             bar.progress = (steerOut + 1000).coerceIn(0, 2000)
-            valueText.text = "steer = $steerOut"
+            valueText.text = "${t("steer", "кермо")} = $steerOut"
             if (running) {
                 val err = netError
                 when {
                     err != null -> {
-                        rateText.text = "✖ Помилка: $err"
+                        rateText.text = "✖ ${t("Error", "Помилка")}: $err"
                         rateText.setTextColor(Color.RED)
                     }
                     now - lastAck < 2500 -> {
-                        rateText.text = "● $rate pkt/s — ПК ОК"
+                        rateText.text = "● $rate ${t("pkt/s — PC OK", "пак/с — ПК ОК")}"
                         rateText.setTextColor(Color.parseColor("#66BB6A"))
                     }
                     else -> {
-                        rateText.text = "● $rate pkt/s — ПК мовчить…"
+                        rateText.text = "● $rate ${t("pkt/s — PC silent…", "пак/с — ПК мовчить…")}"
                         rateText.setTextColor(Color.parseColor("#FFB74D"))
                     }
                 }
@@ -527,6 +558,7 @@ class MainActivity : Activity(), SensorEventListener {
         smoothNorm = 0f
         accumulatedDeg = 0f
         prevTwistDeg = 0f
+        stopVibration()
     }
 
     private fun axisVec(): FloatArray = when (axisIndex) {
@@ -570,6 +602,7 @@ class MainActivity : Activity(), SensorEventListener {
             putInt("axis", axisIndex)
             putInt("orient", orientIndex)
             putInt("vib", vibStrength)
+            putString("lang", lang)
             putBoolean("screenOn", keepScreenOn)
             apply()
         }
@@ -579,6 +612,7 @@ class MainActivity : Activity(), SensorEventListener {
         val p = getSharedPreferences("cfg", Context.MODE_PRIVATE)
         targetIp = p.getString("ip", targetIp)!!
         port = p.getInt("port", port)
+        if (port == 8888) port = 47777
         maxAngle = p.getFloat("maxAngle", maxAngle)
         deadzoneDeg = p.getFloat("deadzone", deadzoneDeg)
         smoothingPct = p.getInt("smoothing", smoothingPct)
@@ -586,6 +620,7 @@ class MainActivity : Activity(), SensorEventListener {
         axisIndex = p.getInt("axis", axisIndex)
         orientIndex = p.getInt("orient", orientIndex)
         vibStrength = p.getInt("vib", vibStrength)
+        lang = p.getString("lang", lang)!!
         keepScreenOn = p.getBoolean("screenOn", keepScreenOn)
     }
 }

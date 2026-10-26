@@ -7,7 +7,7 @@ import time
 
 import uinput
 
-UDP_PORT = 8888
+UDP_PORT = 47777
 PHONE_TIMEOUT = 1.0
 RETURN_TIME = 0.4
 PC_SMOOTHING = 0.0

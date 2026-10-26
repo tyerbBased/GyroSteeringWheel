@@ -6,7 +6,7 @@ import sys
 import time
 
 host = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
-port = int(sys.argv[2]) if len(sys.argv) > 2 else 8888
+port = int(sys.argv[2]) if len(sys.argv) > 2 else 47777
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 t0 = time.time()
