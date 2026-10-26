@@ -14,8 +14,10 @@ No root required. No Arduino. No drivers.
 ## Features
 
 - **100 packets/s** UDP streaming — low latency, smooth in-game response
-- **Full lock up to 1800°** (multi-turn) — real phase-unwrapped angle, works
-  for a phone mounted on an actual 900°/1080°/1800° steering wheel
+- **Full lock up to 3000°** (multi-turn) — real phase-unwrapped angle, works
+  for a phone mounted on an actual 900°/1080°/1800°+ steering wheel
+- **Over-turn vibration** — haptic warning when you turn past the chosen
+  full-lock angle (both sides), with adjustable strength
 - **Steering axis selection** — Z (screen facing you, hold like a wheel),
   X (long edge), Y (short edge) — tolerant to tilting (swing-twist math)
 - **Deadzone, smoothing, invert** — all adjustable live in the app
@@ -70,7 +72,8 @@ install it, make sure the phone is on the same Wi-Fi network as the PC, then:
 | Setting | Description |
 |---|---|
 | Steering axis | Rotation axis: `Z` screen normal (hold like a wheel), `X` long edge, `Y` short edge |
-| Full lock | Angle giving 100% deflection: 30–1800° (multi-turn safe) |
+| Full lock | Angle giving 100% deflection: 30–3000° (multi-turn safe) |
+| Vibration beyond full lock | Haptic warning strength 0–100% (0 = off) when the wheel turns past the full-lock angle |
 | Deadzone | Center dead zone in degrees (default 2°) |
 | Smoothing | Exponential smoothing 0–95% (default 40%) |
 | Invert | On by default: clockwise turn = positive axis value |

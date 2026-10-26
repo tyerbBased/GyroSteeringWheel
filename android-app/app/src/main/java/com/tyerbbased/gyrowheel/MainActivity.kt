@@ -1,4 +1,4 @@
-package com.pc.steeringwheel
+package com.tyerbbased.gyrowheel
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -15,6 +15,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Button
@@ -46,6 +49,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var invert = true
     private var axisIndex = 0
     private var orientIndex = 0
+    private var vibStrength = 60
     private var keepScreenOn = true
 
     private lateinit var sensorManager: SensorManager
@@ -66,6 +70,8 @@ class MainActivity : Activity(), SensorEventListener {
     private var sendThread: Thread? = null
     private var ackThread: Thread? = null
     private var wifiLock: WifiManager.WifiLock? = null
+    private var vibrator: Vibrator? = null
+    @Volatile private var vibrating = false
 
     private val handler = Handler(Looper.getMainLooper())
     private var rate = 0
@@ -87,6 +93,8 @@ class MainActivity : Activity(), SensorEventListener {
     private lateinit var deadzoneSeek: SeekBar
     private lateinit var smoothingLabel: TextView
     private lateinit var smoothingSeek: SeekBar
+    private lateinit var vibLabel: TextView
+    private lateinit var vibSeek: SeekBar
     private lateinit var axisGroup: RadioGroup
     private lateinit var orientGroup: RadioGroup
     private lateinit var invertCheck: CheckBox
@@ -101,6 +109,13 @@ class MainActivity : Activity(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
             ?: sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
 
         buildUi()
         applyKeepScreenOn()
@@ -217,7 +232,7 @@ class MainActivity : Activity(), SensorEventListener {
 
         maxAngleLabel = label("Full lock at: ${maxAngle.roundToInt()}°", 14f, true)
         root.addView(maxAngleLabel)
-        maxAngleSeek = SeekBar(this).apply { max = 118; progress = ((maxAngle - 30) / 15f).roundToInt() }
+        maxAngleSeek = SeekBar(this).apply { max = 198; progress = ((maxAngle - 30) / 15f).roundToInt() }
         maxAngleSeek.setOnSeekBarChangeListener(simpleSeek {
             maxAngle = 30 + it * 15f
             maxAngleLabel.text = "Full lock at: ${maxAngle.roundToInt()}°"
@@ -244,6 +259,17 @@ class MainActivity : Activity(), SensorEventListener {
             savePrefs()
         })
         root.addView(smoothingSeek)
+
+        vibLabel = label("Vibration beyond full lock: $vibStrength%", 14f, true)
+        root.addView(vibLabel)
+        vibSeek = SeekBar(this).apply { max = 100; progress = vibStrength }
+        vibSeek.setOnSeekBarChangeListener(simpleSeek {
+            vibStrength = it
+            vibLabel.text = "Vibration beyond full lock: $it%"
+            if (vibrating) stopVibration()
+            savePrefs()
+        })
+        root.addView(vibSeek)
 
         root.addView(label(
             "ПК: запустіть steering_receiver_linux.py (порт $port).\n" +
@@ -304,6 +330,25 @@ class MainActivity : Activity(), SensorEventListener {
         } catch (_: Exception) {}
     }
 
+    private fun startVibration() {
+        val v = vibrator ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val amp = (1 + vibStrength * 254 / 100).coerceIn(1, 255)
+                v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 80), intArrayOf(0, amp), 0))
+            } else {
+                @Suppress("DEPRECATION")
+                v.vibrate(longArrayOf(0, 60, 40), 0)
+            }
+            vibrating = true
+        } catch (_: Exception) {}
+    }
+
+    private fun stopVibration() {
+        try { vibrator?.cancel() } catch (_: Exception) {}
+        vibrating = false
+    }
+
     private fun startStreaming() {
         if (running) return
         val ip = ipEdit.text.toString().trim()
@@ -342,6 +387,7 @@ class MainActivity : Activity(), SensorEventListener {
         try { socket?.close() } catch (_: Exception) {}
         sensorManager.unregisterListener(this)
         releaseWifiLock()
+        stopVibration()
         steerOut = 0; twistDeg = 0f
         startBtn.text = "START"
         statusText.text = "STOPPED"
@@ -450,6 +496,15 @@ class MainActivity : Activity(), SensorEventListener {
         prevTwistDeg = twDeg
         twistDeg = accumulatedDeg
 
+        val outOfBounds = abs(accumulatedDeg) > maxAngle + 1f
+        val backInBounds = abs(accumulatedDeg) < maxAngle - 3f
+        if (vibStrength > 0 && vibrator != null) {
+            if (outOfBounds && !vibrating) startVibration()
+            else if (backInBounds && vibrating) stopVibration()
+        } else if (vibrating) {
+            stopVibration()
+        }
+
         var norm = accumulatedDeg / maxAngle
         if (norm > 1f) norm = 1f else if (norm < -1f) norm = -1f
 
@@ -500,6 +555,7 @@ class MainActivity : Activity(), SensorEventListener {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
+        stopVibration()
         if (running) stopStreaming()
     }
 
@@ -513,6 +569,7 @@ class MainActivity : Activity(), SensorEventListener {
             putBoolean("invert", invert)
             putInt("axis", axisIndex)
             putInt("orient", orientIndex)
+            putInt("vib", vibStrength)
             putBoolean("screenOn", keepScreenOn)
             apply()
         }
@@ -528,6 +585,7 @@ class MainActivity : Activity(), SensorEventListener {
         invert = p.getBoolean("invert", invert)
         axisIndex = p.getInt("axis", axisIndex)
         orientIndex = p.getInt("orient", orientIndex)
+        vibStrength = p.getInt("vib", vibStrength)
         keepScreenOn = p.getBoolean("screenOn", keepScreenOn)
     }
 }
