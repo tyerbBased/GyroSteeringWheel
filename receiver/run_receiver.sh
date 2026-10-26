@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")" || exit 1
-if [ -x "$HOME/pedal/venv/bin/python" ]; then
-    PY="$HOME/pedal/venv/bin/python"
+if [ -x "$HOME/GyroSteeringWheel/venv/bin/python" ]; then
+    PY="$HOME/GyroSteeringWheel/venv/bin/python"
 else
     PY=python3
 fi
