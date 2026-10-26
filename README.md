@@ -9,9 +9,7 @@ axis.
 [Phone: gyro + rotation vector] --UDP:8888--> [PC: steering_receiver_linux.py] --> uinput "Gyro Steering Wheel"
 ```
 
-No root required. No Arduino. No drivers.
-
-The app speaks **English and Ukrainian** (switchable in the app).
+No root required.
 
 ## Features
 
@@ -25,8 +23,6 @@ The app speaks **English and Ukrainian** (switchable in the app).
 - **Deadzone, smoothing, invert** — all adjustable live in the app
 - **Wi-Fi low-latency lock** — keeps the radio awake so packets don't arrive
   in bursts
-- **ACK feedback** — the app shows a green "PC OK" indicator only when the PC
-  actually receives packets
 - **Auto smooth re-center** — if the phone stops sending (>1 s), the wheel
   eases back to center instead of sticking
 - **Settings persist** — IP, port and all tuning survive app restarts
@@ -57,7 +53,7 @@ cd receiver
 
 or directly: `python3 -u steering_receiver_linux.py` (needs `pip install python-uinput`)
 
-Find your PC IP address: `ip a` (e.g. `192.168.0.104`).
+Find your PC IP address: `ip a` (e.g. `192.168.0.100`).
 
 ### 2. Phone — install the app
 
