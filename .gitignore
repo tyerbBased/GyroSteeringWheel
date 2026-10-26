@@ -1,0 +1,23 @@
+# Gradle
+.gradle/
+build/
+app/build/
+
+# Android Studio / IntelliJ
+.idea/
+captures/
+*.iml
+
+# Machine-specific SDK path (set your own: sdk.dir=/path/to/android-sdk)
+local.properties
+
+# Build outputs (published APKs live in releases/)
+*.apk
+!releases/*.apk
+
+# Python
+__pycache__/
+*.pyc
+
+# Local toolchain (JDK/Android SDK — never commit)
+tools/
