@@ -34,7 +34,19 @@ def steering_from_packet(value):
 
 
 def main():
-    device = uinput.Device(device_events, "Gyro Steering Wheel")
+    try:
+        device = uinput.Device(device_events, "Gyro Steering Wheel")
+    except OSError as e:
+        print(f"Failed to open /dev/uinput: {e}", flush=True)
+        if e.errno == 19:
+            print("The uinput kernel module is not loaded. Fix:", flush=True)
+            print("    sudo modprobe uinput", flush=True)
+            print("To load it automatically at every boot:", flush=True)
+            print("    echo uinput | sudo tee /etc/modules-load.d/uinput.conf", flush=True)
+        elif e.errno == 13:
+            print("No permission to /dev/uinput. Add a udev rule (see README, Troubleshooting).", flush=True)
+        sys.exit(1)
+
     print("Virtual joystick created (uinput): steering on ABS_X.", flush=True)
     emit(device, ABS_X_EVENT, AXIS_CENTER)
 

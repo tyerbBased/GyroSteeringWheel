@@ -126,6 +126,14 @@ Prefer your own setup? Open `android-app/` in Android Studio and build there
 
 - **App shows "PC silent"** — check the IP, make sure both devices are on the
   same network. If a firewall is running: `sudo ufw allow 47777/udp`.
+- **`OSError: [Errno 19] Failed to open the uinput device`** (usually right
+  after a reboot) — the `uinput` kernel module isn't loaded:
+
+  ```bash
+  sudo modprobe uinput
+  echo uinput | sudo tee /etc/modules-load.d/uinput.conf   # load at every boot
+  ```
+
 - **PermissionError on /dev/uinput** — add a udev rule:
 
   ```
